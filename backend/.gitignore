@@ -1,0 +1,14 @@
+# Ignore model artifacts and logs
+*.pt
+*.pkl
+*.gz
+*.zip
+*.tar.gz
+logs/
+results/
+received_results/
+hospital_packages/
+env/
+*.ipynb_checkpoints/
+__pycache__/
+*.csv
