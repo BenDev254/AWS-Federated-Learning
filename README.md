@@ -1,5 +1,5 @@
 
-# 🏥 TechLife FL: Federated Learning for African Healthcare
+# 🏥 TechLife FL: Federated Learning for Universal Healthcare
 
 > *Secure AI collaboration for hospitals—without compromising patient privacy.*
 
