@@ -1,0 +1,2 @@
+{"timestamp": "2025-06-17T18:16:16.633765Z", "input_diag_count": 12, "predicted_class": "Low", "class_probabilities": {"Low": 0.4149213135242462, "Medium": 0.36687925457954407, "High": 0.21819940209388733}}
+{"timestamp": "2025-06-17T18:16:51.341962Z", "input_diag_count": 12, "predicted_class": "Low", "class_probabilities": {"Low": 0.4149213135242462, "Medium": 0.36687925457954407, "High": 0.21819940209388733}}

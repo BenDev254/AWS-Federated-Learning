@@ -220,32 +220,6 @@ def package_training_code(envoy_id: int, db: Session = Depends(get_db)):
         print("Unhandled Exception:\n", tb)
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
-# @app.post("/envoy/{envoy_id}/add_diagnoses")
-# def add_local_diagnoses(
-#     envoy_id: int,
-#     diagnoses: List[DiagnosisIn],
-#     db: Session = Depends(get_db)
-# ):
-#     envoy = db.query(Envoy).filter(Envoy.id == envoy_id).first()
-#     if not envoy:
-#         raise HTTPException(status_code=404, detail="Envoy not found")
-
-#     entries = []
-#     for d in diagnoses:
-#         entry = LocalDiagnosis(
-#             envoy_id=envoy_id,
-#             subject_id=d.subject_id,
-#             hadm_id=d.hadm_id,
-#             icd_code=d.icd_code,
-#             icd_version=d.icd_version,
-#             seq_num=d.seq_num
-#         )
-#         entries.append(entry)
-
-#     db.add_all(entries)
-#     db.commit()
-
-#     return {"message": f"{len(entries)} diagnoses saved successfully for envoy '{envoy.name}'."}
 
 from sqlalchemy import func
 from typing import Union

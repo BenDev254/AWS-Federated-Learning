@@ -1,59 +1,126 @@
-# 🏥 Federated Learning Medical Dashboard
 
-A secure, privacy-preserving web application for hospitals to collaborate in training machine learning models using **Federated Learning**. Designed for both **Doctors** and **Data Scientists**, the platform allows hospitals (envoys) to manage patient diagnoses, train local models, and contribute to global model improvement — without sharing raw data.
+# 🏥 TechLife FL: Federated Learning for African Healthcare
+
+> *Secure AI collaboration for hospitals—without compromising patient privacy.*
+
+**TechLife FL** is a full-stack Federated Learning platform that allows hospitals to collaboratively train machine learning models on sensitive patient data—without sharing the data itself. Built for both **Doctors** and **Data Scientists**, the platform promotes data sovereignty while enabling smarter healthcare across Africa and beyond.
 
 ---
 
-## ⚙️ 2. Backend Setup (FastAPI)
+# Live Version
 
-### 🐍 Create Virtual Environment
+You can access the live test application here = https://demo-fl-frontend-eqapesdxgmaganhz.canadacentral-01.azurewebsites.net/ 
 
+- Note -- Some of the data in this demo environment is test data and there not complete. Kindly generate fresh new envoys for your test. 
+
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1️⃣ Clone and Navigate
+```bash
+git clone https://github.com/BenDev254/AWS-Federated-Learning.git
+
+```
+The are two directories; frontend and backend, run these two directories in two instances 
+
+---
+
+### 2️⃣ Backend (FastAPI)
+
+#### 📦 Set up Virtual Environment and Install Requirements
 ```bash
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  
 pip install -r requirements.txt
 ```
 
 ---
 
-### 📄 Create `.env` File
-
+#### 📄 Create a `.env` File in the Root Directory
 ```ini
-DATABASE_URL=postgresql://fastapi_user:pass@localhost/federated_db
+DATABASE_URL=your-db-url # i.e postgresql://fastapi_user:pass@localhost:5432/federated_db
+
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 AWS_REGION=eu-north-1
-S3_BUCKET_NAME=fl-training-results-techlife
+
+DIRECTOR_S3_BUCKET_NAME=your-s3-bucket # i.e fl-training-results-techlife
+ENVOY_S3_BUCKET_NAME=your-s3-bucket # i.e. fl-training-envoy-a # You can use the same bucket for testing different folders
+
 SECRET_KEY=your-secret
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+```
+
+
+---
+
+#### 🗃️ Create and Configure PostgreSQL Locally (Linux)
+
+
+```bash -- Linux Installation
+# Install postgres if you haven't done so yet
+sudo apt install postgresql postgresql-contrib -y
+```
+
+
+```bash -- Linux start service in Linux 
+# Start the postgresql server
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+```bash
+# Switch to postgres system user
+sudo -i -u postgres
+```
+
+Then run:
+
+```bash
+# Create database
+createdb federated_db
+
+# Access PostgreSQL shell
+psql
+```
+
+Inside the PostgreSQL shell:
+
+```sql
+-- Create user with password 'pass'
+CREATE USER fastapi_user WITH PASSWORD 'pass';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE federated_db TO fastapi_user;
+\q
+```
+
+Exit the postgres user:
+```bash
+exit
 ```
 
 ---
 
-### 🗃️ Initialize DB
-
-Make sure PostgreSQL is running and then run:
-
+#### ⚙️ Apply DB Migrations
 ```bash
 alembic upgrade head
 ```
 
 ---
 
-### 🚀 Run the FastAPI Server
-
+#### 🚀 Run FastAPI Server
 ```bash
 uvicorn main:app --reload
 ```
 
-Runs on: [http://localhost:8000](http://localhost:8000)
+Access at: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## 🌐 3. Frontend Setup (React)
-
-Open a new terminal tab and run:
+### 3️⃣ Frontend (React)
 
 ```bash
 cd frontend
@@ -61,42 +128,40 @@ npm install
 npm start
 ```
 
-Runs on: [http://localhost:3000](http://localhost:3000)
+Frontend runs at: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication System
 
-- JWT-based login system
-- Users are either:
-  - `doctor`
-  - `data_scientist`
-- Tokens include role-based routing in the frontend
-
----
-
-## 🩺 Core Features
-
-### 👨‍⚕️ Doctor Role
-
-- Register patients (name → reversible subject ID)
-- Record diagnoses (ICD-10, risk level)
-- View patient records
-- Run local/global inference on hospital data
-- Upload local diagnoses CSV to S3
+- JWT-based authentication
+- Role-based access:
+  - `doctor`: patient records, diagnosis, inference
+  - `data_scientist`: training, model aggregation, deployment
 
 ---
 
-### 🧪 Data Scientist Role
+## 🩺 Platform Roles & Features
 
-- Manage hospitals (envoys)
-- Package and deploy training code
-- Launch local training
-- Aggregate trained models into a global model
-- Distribute global models to envoys
-- Run global inference
+### 👨‍⚕️ Doctor Dashboard
 
----
+- Register patients (name → secure ID)
+- Enter ICD-10 diagnoses + risk levels
+- View and manage local patient data
+- Upload to S3 for training
+- Run local or global inference
+
+### 🧪 Data Scientist Dashboard
+
+- Create and manage hospital envoys
+- Package training jobs
+- Launch distributed training
+- Aggregate models globally
+- Distribute models to envoys
+- Trigger inference at scale
+
+
+
 
 ## 📦 API Overview
 
@@ -137,6 +202,101 @@ Runs on: [http://localhost:3000](http://localhost:3000)
 ]
 ```
 
+
+---
+
+## 🧠 About the Machine Learning Model
+
+The platform includes a machine learning model that **classifies patient risk levels** using structured diagnosis data. It supports **decentralized training** using **Federated Learning** and is based on the **MIMIC-IV dataset**, a real-world critical care database.
+
+---
+
+### 📊 Source Dataset: **MIMIC-IV**
+- Developed by MIT
+- 40,000+ anonymized ICU patients
+- Includes ICD-coded diagnoses
+- Used here for demonstration purposes
+
+---
+
+### 🔍 Model Objective: **Patient Risk Stratification**
+
+Predicts whether a patient’s condition is **Low**, **Medium**, or **High** risk, based on structured diagnosis history. Ideal for triage, early warning, and health system optimization.
+
+---
+
+### 🧬 Input Format
+
+Doctors input structured diagnosis info:
+
+```json
+{
+  "hadm_id": "H00123",
+  "icd_code": "I10",
+  "seq_num": 1,
+  "diagnosis_count": 3
+}
+```
+
+---
+
+### 📥 Model Features
+
+| Feature              | Description                             |
+|----------------------|-----------------------------------------|
+| `diagnosis_count`    | Number of ICD entries per patient       |
+| `icd_code`           | ICD-10 diagnosis code (encoded)         |
+| `seq_num`            | Order of diagnosis during the visit     |
+| `icd_version`        | ICD version (9 or 10)                   |
+
+---
+
+### 🎯 Output (Target Variable)
+
+- `Low` (0–1 diagnoses)
+- `Medium` (2–4 diagnoses)
+- `High` (5+ diagnoses)
+
+Labels are synthetic by default but can be improved with real annotations.
+
+---
+
+### 🧠 Model Architecture
+
+- **Type:** Multi-class classifier
+- **Tech:** PyTorch (local training)
+- **Options:** Logistic Regression / Shallow Neural Net
+- **Training Mode:** Federated (local envoy → global aggregation)
+- **Loss Function:** CrossEntropyLoss
+
+---
+
+### 🔁 Federated Learning Workflow
+
+1. Envoy trains a local model on its dataset
+2. Trained weights (not data) are sent to the Director
+3. Director aggregates into a global model
+4. Global model is pushed back to envoys
+
+---
+
+### ⚠️ Limitations
+
+- Current data is synthetic/test
+- Labels are heuristically derived
+- No personal or demographic data yet used
+- ICD encoding is basic; embeddings can be improved
+
+---
+
+### 🧪 Future Roadmap
+
+- Add real hospital triage criteria
+- Incorporate age, sex, vitals, medications
+- Enhance ICD code embeddings
+- Track per-envoy performance and model history
+- Introduce secure aggregation and privacy tooling
+
 ---
 
 ## 📁 S3 Folder Structure
@@ -154,7 +314,7 @@ fl-training-results-techlife/
 
 ---
 
-## 📝 License
+## 📜 License
 
 Licensed under the MIT License.
 
@@ -162,7 +322,21 @@ Licensed under the MIT License.
 
 ## 🙏 Acknowledgements
 
+- MIMIC-IV Dataset (MIT Lab for Computational Physiology)
 - FastAPI, SQLAlchemy, Alembic
 - React, React Router, Axios
-- AWS S3, PostgreSQL
-- ICD-10 coding system
+- PyTorch, AWS S3
+- ICD-10 and standard healthcare terminologies
+
+
+
+## 🛡️ Ownership & Demo Use Only
+
+This codebase is the intellectual property of **Techlife Collective** and is intended solely for **demo and evaluation purposes** during public showcases such as hackathons.
+
+Unauthorized commercial use or redistribution is prohibited.
+
+For licensing inquiries, partnership discussions, or feedback, please contact:
+
+- 🌐 Website: [www.techlife.africa](https://www.techlife.africa)
+- 📧 Lead Developer: [benard@techlife.africa](mailto:benard@techlife.africa)

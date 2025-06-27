@@ -1,0 +1,13 @@
+{
+  "dataset_s3": "s3://physionet-open/mimic-iv-demo/2.2/hosp/diagnoses_icd.csv.gz",
+  "director_bucket": "fl-training-results-techlife",
+  "director_prefix": "envoys/K-Road2",
+  "s3_bucket": "fl-training-envoy-a",
+  "s3_prefix": "K-Road2",
+  "s3_output_prefix": "s3://fl-training-envoy-a/K-Road2",
+  "envoy_dataset_s3": "s3://fl-training-envoy-a/K-Road2/K-Road2_diagnoses.csv",
+  "upload_urls": [
+    "s3://fl-training-envoy-a/K-Road2/uploads"
+  ],
+  "region": "eu-north-1"
+}

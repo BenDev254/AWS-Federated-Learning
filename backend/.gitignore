@@ -1,14 +1,31 @@
-# Ignore model artifacts and logs
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+env/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# System files
+.DS_Store
+Thumbs.db
+.env
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Large files or data
+*.csv
+*.gz
 *.pt
 *.pkl
-*.gz
-*.zip
-*.tar.gz
-logs/
-results/
-received_results/
-hospital_packages/
-env/
-*.ipynb_checkpoints/
-__pycache__/
-*.csv
+data/
+models/
+Yard.md

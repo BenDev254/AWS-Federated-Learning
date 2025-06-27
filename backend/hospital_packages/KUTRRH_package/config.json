@@ -1,0 +1,5 @@
+{
+    "dataset_s3": "s3://physionet-open/mimic-iv-demo/",
+    "region": "us-east-1",
+    "upload_url": "http://your-director-host:8000/upload_results"
+}

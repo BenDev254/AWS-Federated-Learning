@@ -1,0 +1,13 @@
+{
+  "dataset_s3": "s3://physionet-open/mimic-iv-demo/2.2/hosp/diagnoses_icd.csv.gz",
+  "director_bucket": "fl-training-results-techlife",
+  "director_prefix": "envoys/Nairobi Central",
+  "s3_bucket": "fl-training-envoy-a",
+  "s3_prefix": "Nairobi Central",
+  "s3_output_prefix": "s3://fl-training-envoy-a/Nairobi Central",
+  "envoy_dataset_s3": "s3://fl-training-envoy-a/Nairobi Central/Nairobi Central_diagnoses.csv",
+  "upload_urls": [
+    "s3://fl-training-envoy-a/Nairobi Central/uploads"
+  ],
+  "region": "eu-north-1"
+}
