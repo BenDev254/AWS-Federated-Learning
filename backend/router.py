@@ -536,28 +536,29 @@ def copy_dataset_to_envoy(bucket: str, prefix: str, region: str) -> str:
 from urllib.parse import urlparse
 
 
-@app.post("/envoy/{envoy_id}/launch_training")
+
+@router.post("/envoy/{envoy_id}/launch_training")
 def launch_sagemaker_training(envoy_id: int, db: Session = Depends(get_db)):
-    envoy = db.query(Envoy).filter(Envoy.id == envoy_id).first()
-    if not envoy:
-        raise HTTPException(status_code=404, detail="Envoy not found")
-
-    if not envoy.s3_bucket or not envoy.s3_prefix:
-        raise HTTPException(status_code=400, detail="Envoy is missing S3 bucket or prefix")
-
-    region = envoy.region or "eu-north-1"
-
-    # ✅ Copy dataset to same region/bucket
-    dataset_uri = copy_dataset_to_envoy(envoy.s3_bucket, envoy.s3_prefix, region)
-
-    sagemaker_session = sagemaker.Session(boto3.session.Session(region_name=region))
-
-    bucket = envoy.s3_bucket
-    prefix = envoy.s3_prefix.rstrip("/")
-    code_archive_uri = f"s3://{bucket}/{prefix}/training_package.tar.gz"
-    output_path = f"s3://{bucket}/{prefix}/uploads/"
-
     try:
+        envoy = db.query(Envoy).filter(Envoy.id == envoy_id).first()
+        if not envoy:
+            raise HTTPException(status_code=404, detail="Envoy not found")
+
+        if not envoy.s3_bucket or not envoy.s3_prefix:
+            raise HTTPException(status_code=400, detail="Envoy is missing S3 bucket or prefix")
+
+        region = envoy.region or "eu-north-1"
+
+        # ✅ Copy dataset and confirm the URI
+        dataset_uri = copy_dataset_to_envoy(envoy.s3_bucket, envoy.s3_prefix, region)
+
+        sagemaker_session = sagemaker.Session(boto3.session.Session(region_name=region))
+
+        bucket = envoy.s3_bucket
+        prefix = envoy.s3_prefix.rstrip("/")
+        code_archive_uri = f"s3://{bucket}/{prefix}/training_package.tar.gz"
+        output_path = f"s3://{bucket}/{prefix}/uploads/"
+
         estimator = PyTorch(
             entry_point="train.py",
             source_dir=code_archive_uri,
@@ -571,9 +572,7 @@ def launch_sagemaker_training(envoy_id: int, db: Session = Depends(get_db)):
             sagemaker_session=sagemaker_session
         )
 
-        estimator.fit({
-            "training": dataset_uri
-        })
+        estimator.fit({"training": dataset_uri})
 
         return {
             "message": f"SageMaker training launched for envoy {envoy.name}.",
@@ -585,6 +584,14 @@ def launch_sagemaker_training(envoy_id: int, db: Session = Depends(get_db)):
 
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"SageMaker error: {e}")
+
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Unexpected error occurred: {str(e)}"},
+            headers={"Access-Control-Allow-Origin": "*"}  # ✅ Ensure CORS on error
+        )
 
 
 

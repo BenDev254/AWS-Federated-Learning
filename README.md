@@ -11,10 +11,25 @@
 
 You can access the live test application here = https://demo-fl-frontend-eqapesdxgmaganhz.canadacentral-01.azurewebsites.net/ 
 
+- Doctor Credentials - auth = doc; pass = doc
+- Data Scientist Credentials - auth = pass; pass = pass
+
 - Note -- Some of the data in this demo environment is test data and there not complete. Kindly generate fresh new envoys for your test. 
 
 
 ---
+
+### ⚠️ Important Notice
+
+Liaise with the resident doctor before any training. Share the training materials only first, and wait for the hospital to treat a number of patients.  
+Only then should you launch training.  
+
+Run **Global Inference** only after training models on a number of envoys successfully and the doctor exporting the materials to their individual S3 buckets, to avoid runtime errors.  
+
+📧 **For any assistance, contact the lead Data Scientist Benard via [benard@techlife.africa](mailto:benard@techlife.africa)**
+
+---
+
 
 ## ⚙️ Setup Instructions
 

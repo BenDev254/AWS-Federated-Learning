@@ -48,7 +48,7 @@ export default function DataScientistDashboard() {
   const createEnvoy = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/create_envoy", null, { params: newEnvoy });
+      await api.post("/create_envoy", newEnvoy); // ✅ send JSON body instead of query params
       alert("✅ Hospital created!");
       setNewEnvoy({ name: "", s3_bucket: "", s3_prefix: "", region: "eu-north-1" });
       fetchEnvoys();
@@ -149,12 +149,10 @@ export default function DataScientistDashboard() {
           Liaise with the resident doctor before any training. Share the training materials only first, and wait for the hospital to treat a number of patients.
           Only then should you launch training.
         </p>
+        <p>Run Global Inference only after training MLs on number of envoys successfully and the doctor exporting the materials to thier individual S3 buckets, to avoid runtime errors</p>
 
-        <p>Run Global Inference only after training MLs on number of envoys sucessfully to avoid runtime errors </p>
-
-        <p>Reach out to the lead Data Scientist Benard via benard@techlife.africa for any assistance</p>
+        <p>Reach out to the lead Data Scientist Benard via benard@techlife.africa for any assistance.</p>
       </div>
-
 
       <div className="card">
         <h3>Hospital Actions</h3>
