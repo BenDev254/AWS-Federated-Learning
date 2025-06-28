@@ -30,6 +30,8 @@ import tarfile
 import re
 from schemas import PatientCreate
 from models import Patient 
+from fastapi import Body
+
 
 
 app = FastAPI()
