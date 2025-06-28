@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/AuthForms.css';
+import socket from '../socket'; // adjust path if your socket.js is elsewhere
+
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -25,8 +27,17 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8000/api/register', form);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/register`, form);
       alert('Registration successful');
+      socket.onopen = () => {
+        console.log('✅ WebSocket connected after registration');
+        socket.send('New user registered!');
+      };
+
+      socket.onmessage = (event) => {
+        console.log('📨 Message from server:', event.data);
+      };
+
       navigate('/login');
     } catch (err) {
       console.error(err.response?.data || err.message);

@@ -1,9 +1,30 @@
 // src/pages/LandingPage.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import socket from '../socket'; //
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [wsMessages, setWsMessages] = useState([]);
+
+
+   useEffect(() => {
+    socket.onopen = () => {
+      console.log('🟢 WebSocket connected (Landing)');
+      socket.send('Landing page connected');
+    };
+
+    socket.onmessage = (event) => {
+      console.log('📨 WS Message (Landing):', event.data);
+      setWsMessages((prev) => [...prev, event.data]);
+    };
+
+    return () => {
+      socket.onmessage = null;
+    };
+  }, []);
+
+  
 
   return (
     <div style={styles.container}>
@@ -13,6 +34,16 @@ export default function LandingPage() {
         <button style={styles.button} onClick={() => navigate('/register')}>Register</button>
         <button style={styles.button} onClick={() => navigate('/login')}>Login</button>
       </div>
+      {wsMessages.length > 0 && (
+        <div style={styles.wsLog}>
+          <h4>Live Server Messages</h4>
+          <ul style={styles.logList}>
+            {wsMessages.map((msg, idx) => (
+              <li key={idx}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

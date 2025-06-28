@@ -59,91 +59,178 @@ def get_db():
         db.close()
 
 
+
 @app.post("/create_envoy")
-def create_envoy(name: str, s3_bucket: str, s3_prefix: str, region: str = "eu-north-1", db: Session = Depends(get_db)):
+def create_envoy(
+    name: str = Body(...),
+    s3_bucket: str = Body(...),
+    s3_prefix: str = Body(...),
+    region: str = Body("eu-north-1"),
+    db: Session = Depends(get_db)
+):
+    # 0. Validate inputs
+    if not all([name.strip(), s3_bucket.strip(), s3_prefix.strip(), region.strip()]):
+        raise HTTPException(status_code=400, detail="All fields are required and must be non-empty.")
+
     if db.query(Envoy).filter(Envoy.name == name).first():
         raise HTTPException(status_code=400, detail="Envoy already exists")
 
+    # Prep values
     serial_id = str(uuid.uuid4())
-
-    envoy = Envoy(
-        name=name,
-        serial_id=serial_id,
-        s3_output_prefix=f"s3://{s3_bucket}/{s3_prefix}",
-        training_host=None,
-        s3_bucket=s3_bucket,
-        s3_prefix=s3_prefix,
-        region=region
-    )
-    db.add(envoy)
-    db.commit()
-
-    # 1. Local Dir
     envoy_dir = os.path.join(BASE_DIR, name)
-    os.makedirs(envoy_dir, exist_ok=True)
-
-    # 2. Save config with both director & envoy S3
-    config = {
-        # Public dataset
-        "dataset_s3": "s3://physionet-open/mimic-iv-demo/2.2/hosp/diagnoses_icd.csv.gz",
-
-        # Director S3 info (static)
-        "director_bucket": DIRECTOR_S3_BUCKET,
-        "director_prefix": f"{DIRECTOR_S3_PREFIX}/{name}",
-
-        # Envoy S3 info (user-supplied)
-        "s3_bucket": s3_bucket,
-        "s3_prefix": s3_prefix,
-        "s3_output_prefix": f"s3://{s3_bucket}/{s3_prefix}",
-        "envoy_dataset_s3": f"s3://{s3_bucket}/{s3_prefix}/{name}_diagnoses.csv",
-
-        # Uploads path (inside envoy S3)
-        "upload_urls": [
-            f"s3://{s3_bucket}/{s3_prefix}/uploads"
-        ],
-
-        # AWS region
-        "region": region
-    }
-
-    with open(os.path.join(envoy_dir, "config.json"), "w") as f:
-        json.dump(config, f, indent=2)
-
-    # 3. Serial file
-    with open(os.path.join(envoy_dir, "serial.txt"), "w") as f:
-        f.write(f"{serial_id}\nCreated: {datetime.utcnow().isoformat()}Z\n")
-
-    # 4. Add required files
-    shutil.copyfile(TRAIN_TEMPLATE_PATH, os.path.join(envoy_dir, "train.py"))
-    shutil.copyfile(REQUIREMENTS_TEMPLATE_PATH, os.path.join(envoy_dir, "requirements.txt"))
-
-    # 5. Upload to Director S3
-    s3 = boto3.client("s3", region_name=region)
     director_key_prefix = f"{DIRECTOR_S3_PREFIX}/{name}"
 
+    # Ensure S3 client works before writing to DB or disk
     try:
-        # Upload all files to director bucket
-        for fname in ["config.json", "serial.txt", "train.py", "requirements.txt"]:
-            local_path = os.path.join(envoy_dir, fname)
-            s3_key = f"{director_key_prefix}/{fname}"
-            s3.upload_file(local_path, DIRECTOR_S3_BUCKET, s3_key)
+        s3 = boto3.client("s3", region_name=region)
+        # Validate that bucket exists (throws error if not)
+        s3.head_bucket(Bucket=s3_bucket)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid or inaccessible S3 bucket: {e}")
 
-        # Create subfolders in envoy S3: uploads, logs, data
+    try:
+        # 1. Create local dir
+        os.makedirs(envoy_dir, exist_ok=False)
+
+        # 2. Save config.json
+        config = {
+            "dataset_s3": "s3://physionet-open/mimic-iv-demo/2.2/hosp/diagnoses_icd.csv.gz",
+            "director_bucket": DIRECTOR_S3_BUCKET,
+            "director_prefix": director_key_prefix,
+            "s3_bucket": s3_bucket,
+            "s3_prefix": s3_prefix,
+            "s3_output_prefix": f"s3://{s3_bucket}/{s3_prefix}",
+            "envoy_dataset_s3": f"s3://{s3_bucket}/{s3_prefix}/{name}_diagnoses.csv",
+            "upload_urls": [f"s3://{s3_bucket}/{s3_prefix}/uploads"],
+            "region": region,
+        }
+
+        with open(os.path.join(envoy_dir, "config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+        # 3. Serial file
+        with open(os.path.join(envoy_dir, "serial.txt"), "w") as f:
+            f.write(f"{serial_id}\nCreated: {datetime.utcnow().isoformat()}Z\n")
+
+        # 4. Training files
+        shutil.copyfile(TRAIN_TEMPLATE_PATH, os.path.join(envoy_dir, "train.py"))
+        shutil.copyfile(REQUIREMENTS_TEMPLATE_PATH, os.path.join(envoy_dir, "requirements.txt"))
+
+        # 5. Upload to Director S3
+        for fname in ["config.json", "serial.txt", "train.py", "requirements.txt"]:
+            s3.upload_file(os.path.join(envoy_dir, fname), DIRECTOR_S3_BUCKET, f"{director_key_prefix}/{fname}")
+
+        # 6. Create S3 folders in envoy bucket
         for subdir in ["uploads/.keep", "logs/.keep", "data/.keep"]:
             s3.put_object(Bucket=s3_bucket, Key=f"{s3_prefix.rstrip('/')}/{subdir}", Body=b"")
 
+        # 7. Only now write to DB
+        envoy = Envoy(
+            name=name,
+            serial_id=serial_id,
+            s3_output_prefix=f"s3://{s3_bucket}/{s3_prefix}",
+            training_host=None,
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            region=region
+        )
+        db.add(envoy)
+        db.commit()
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"S3 upload failed: {e}")
+        # Cleanup partial local files
+        if os.path.exists(envoy_dir):
+            shutil.rmtree(envoy_dir)
+        raise HTTPException(status_code=500, detail=f"Envoy creation failed: {e}")
 
     return {
-        "message": f"Envoy '{name}' created successfully and stored in director S3.",
+        "message": f"✅ Envoy '{name}' created successfully and stored in director S3.",
         "envoy_dir": envoy_dir,
         "serial_id": serial_id,
         "director_s3_path": f"s3://{DIRECTOR_S3_BUCKET}/{director_key_prefix}/",
         "envoy_s3_prefix": f"s3://{s3_bucket}/{s3_prefix}/"
     }
 
+@app.delete("/delete_envoy/{envoy_id}")
+def delete_envoy(envoy_id: int, db: Session = Depends(get_db)):
+    try:
+        # 1. Fetch envoy record
+        envoy = db.query(Envoy).filter(Envoy.id == envoy_id).first()
+        if not envoy:
+            raise HTTPException(status_code=404, detail="Envoy not found")
 
+        envoy_name = envoy.name
+        envoy_bucket = envoy.s3_bucket
+        envoy_prefix = envoy.s3_prefix
+        envoy_region = envoy.region
+
+        # 2. Delete local files
+        local_envoy_path = os.path.join(BASE_DIR, envoy_name)
+        try:
+            if os.path.exists(local_envoy_path):
+                shutil.rmtree(local_envoy_path)
+        except Exception as e:
+            logging.warning(f"⚠️ Failed to delete local files for {envoy_name}: {e}")
+
+        # 3. Delete objects in envoy's S3 bucket
+        try:
+            delete_s3_objects(envoy_bucket, envoy_prefix)
+        except ClientError as e:
+            logging.warning(f"⚠️ Could not delete S3 objects in envoy bucket {envoy_bucket}: {e}")
+
+        # 4. Delete objects in Director S3 bucket
+        director_prefix = f"{DIRECTOR_S3_PREFIX}/{envoy_name}/"
+        try:
+            delete_s3_objects(DIRECTOR_S3_BUCKET, director_prefix)
+        except ClientError as e:
+            logging.warning(f"⚠️ Could not delete S3 objects in director bucket: {e}")
+
+        # 5. Delete envoy from database
+        db.delete(envoy)
+        db.commit()
+
+        return {
+            "message": f"✅ Envoy '{envoy_name}' deleted from DB, local disk, and S3 (if found).",
+            "envoy_deleted": envoy_name
+        }
+
+    except Exception as e:
+        logging.exception("❌ Unhandled error during envoy deletion")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+def delete_s3_objects(bucket, prefix):
+    """
+    Delete all S3 objects under a given prefix.
+    """
+    paginator = s3.get_paginator('list_objects_v2')
+    pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
+
+    keys_to_delete = []
+    for page in pages:
+        contents = page.get("Contents", [])
+        keys_to_delete.extend([{"Key": obj["Key"]} for obj in contents])
+
+    if keys_to_delete:
+        s3.delete_objects(Bucket=bucket, Delete={"Objects": keys_to_delete})
+
+
+@app.delete("/reset_database")
+def reset_database(db: Session = Depends(get_db)):
+    try:
+        # Drop all tables
+        Base.metadata.drop_all(bind=engine)
+        # Recreate all tables
+        Base.metadata.create_all(bind=engine)
+
+        return {
+            "message": "✅ All database tables dropped and recreated successfully."
+        }
+
+    except Exception as e:
+        logging.exception("❌ Failed to reset database")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+        
 @app.get("/list_envoys")
 def list_envoys(db: Session = Depends(get_db)):
     envoys = db.query(Envoy).all()

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import socket from '../socket';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -14,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      const res = await axios.post('http://localhost:8000/api/login', form, {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/login`, form, {
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -22,6 +23,16 @@ export default function LoginPage() {
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
+
+      // ✅ Setup socket after login
+      socket.onopen = () => {
+        console.log('✅ WebSocket connection established after login');
+        socket.send('User logged in!');
+      };
+
+      socket.onmessage = (event) => {
+        console.log('📨 Message from server:', event.data);
+      };
 
       if (role === 'doctor') {
         navigate('/doctor');

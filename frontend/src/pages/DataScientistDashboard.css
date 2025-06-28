@@ -98,3 +98,40 @@
   font-family: monospace;
   white-space: pre-wrap;
 }
+
+.ws-log {
+  max-height: 200px;
+  overflow-y: auto;
+  background: #f4f4f4;
+  padding: 10px;
+  border: 1px solid #ccc;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+
+.training-bar {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: #4caf50;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+.notice-card {
+  background-color: #fffbe6;
+  border-left: 4px solid #ffc107;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.notice-card h3 {
+  color: #b58900;
+}

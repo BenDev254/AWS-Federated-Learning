@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./DoctorDashboard.css";
 import api from "../api";
+import socket from "../socket";
 import { useNavigate } from "react-router-dom";
 
 
@@ -11,6 +12,7 @@ export default function DoctorDashboard() {
   const [showTreatModal, setShowTreatModal] = useState(false);
   const [predictionResult, setPredictionResult] = useState(null);
   const [hospitalOptions, setHospitalOptions] = useState([]);
+  const [wsMessages, setWsMessages] = useState([]);
 
   const [selectedEnvoy, setSelectedEnvoy] = useState("");
 
@@ -35,6 +37,23 @@ export default function DoctorDashboard() {
   useEffect(() => {
     fetchPatients();
     fetchHospitals();
+  }, []);
+  
+
+  useEffect(() => {
+    socket.onopen = () => {
+      console.log("🟢 WebSocket connected (Doctor)");
+      socket.send("Doctor dashboard connected");
+    };
+
+    socket.onmessage = (event) => {
+      console.log("📨 WS Message (Doctor):", event.data);
+      setWsMessages(prev => [...prev, event.data]);
+    };
+
+    return () => {
+      socket.onmessage = null;
+    };
   }, []);
 
   const fetchPatients = async () => {
@@ -354,6 +373,17 @@ export default function DoctorDashboard() {
             <button type="submit">Submit Diagnosis</button>
             <button type="button" className="cancel-btn" onClick={() => setShowTreatModal(false)}>Cancel</button>
           </form>
+        </div>
+      )}
+       {/* ✅ Optional: Live WebSocket log */}
+      {wsMessages.length > 0 && (
+        <div className="card">
+          <h4>Server Updates</h4>
+          <ul style={{ fontFamily: "monospace", background: "#f4f4f4", padding: "1rem", maxHeight: "150px", overflowY: "auto" }}>
+            {wsMessages.map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
