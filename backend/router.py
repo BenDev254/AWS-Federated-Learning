@@ -537,7 +537,7 @@ from urllib.parse import urlparse
 
 
 
-@router.post("/envoy/{envoy_id}/launch_training")
+@app.post("/envoy/{envoy_id}/launch_training")
 def launch_sagemaker_training(envoy_id: int, db: Session = Depends(get_db)):
     try:
         envoy = db.query(Envoy).filter(Envoy.id == envoy_id).first()
